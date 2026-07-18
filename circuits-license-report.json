@@ -1,0 +1,14 @@
+{
+    "circomlib@2.0.5": {
+        "licenses": "GPL-3.0",
+        "repository": "https://github.com/iden3/circomlib",
+        "publisher": "0Kims",
+        "path": "/Users/samya/Downloads/VIEL-PROTOCOL/circuits/node_modules/circomlib",
+        "licenseFile": "/Users/samya/Downloads/VIEL-PROTOCOL/circuits/node_modules/circomlib/README.md"
+    },
+    "circuits@1.0.0": {
+        "licenses": "ISC",
+        "path": "/Users/samya/Downloads/VIEL-PROTOCOL/circuits"
+    }
+}
+
