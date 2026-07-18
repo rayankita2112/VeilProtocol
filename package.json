@@ -1,0 +1,62 @@
+{
+  "name": "rwa-project",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone RWA application codebase",
+  "workspaces": [
+    "sdk",
+    "relayer",
+    "app"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=app",
+    "build": "npm run build --workspace=sdk && npm run build --workspace=relayer && npm run build --workspace=app",
+    "build:sdk": "npm run build --workspace=sdk",
+    "build:relayer": "npm run build --workspace=relayer",
+    "build:app": "npm run build --workspace=app",
+    "typecheck": "node scripts/run-typecheck.mjs",
+    "lint": "eslint . --max-warnings=0",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "node scripts/run-tests.mjs all",
+    "test:unit": "node scripts/run-tests.mjs unit",
+    "test:integration": "node scripts/run-tests.mjs integration",
+    "test:frontend": "node --test scripts/tests/*.test.mjs",
+    "test:e2e": "node scripts/run-tests.mjs e2e",
+    "validate:lockfiles": "node scripts/validate-lockfiles.mjs",
+    "validate:env": "node scripts/validate-env.mjs",
+    "validate:secrets": "node scripts/scan-secrets.mjs .",
+    "validate:circuits": "bash scripts/ci-build-circuits.sh && node scripts/validate-circuit-artifacts.mjs",
+    "validate:contracts": "bash scripts/ci-build-contracts.sh",
+    "validate:frontend": "node scripts/validate-frontend.mjs",
+    "validate:licenses": "node scripts/check-licenses.mjs",
+    "prepare:deploy": "node scripts/prepare-deployment-bundle.mjs",
+    "ci:quick": "npm run validate:lockfiles && npm run validate:env && npm run lint && npm run format:check && npm run typecheck",
+    "ci:full": "npm run ci:quick && npm run test && npm run validate:circuits && npm run validate:contracts && npm run validate:frontend",
+    "setup:testnet": "node scripts/write-testnet-config.mjs",
+    "relayer": "npm run start --workspace=relayer",
+    "setup:ceremony": "bash scripts/setup-ceremony.sh",
+    "compile:circuit": "bash scripts/compile-circuit.sh",
+    "compile:subset": "bash scripts/compile-subset.sh",
+    "demo": "bash scripts/demo.sh",
+    "demo:e2e": "npx tsx scripts/demo-e2e.ts",
+    "demo:interactive": "bash scripts/demo.sh 2",
+    "generate:proof": "npx tsx scripts/generate-test-proof.ts",
+    "generate:input": "npx tsx scripts/generate-valid-input.ts"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^10.7.0",
+    "eslint-config-next": "^16.2.10",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "globals": "^17.7.0",
+    "license-checker-rseidelsohn": "^4.4.2",
+    "prettier": "^3.9.5"
+  }
+}

@@ -1,0 +1,17 @@
+node_modules
+app/.next
+app/node_modules
+sdk/dist
+relayer/dist
+contracts/target
+contracts/*/test_snapshots
+circuits/node_modules
+circuits/build
+app/public/circuits
+deploy/artifacts
+deploy/logs
+license-report.json
+circuits-license-report.json
+package-lock.json
+circuits/package-lock.json
+contracts/Cargo.lock

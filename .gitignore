@@ -1,0 +1,38 @@
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+.env
+.env.local
+.env.*
+!.env.example
+!app/.env.example
+config/testnet-deployment.local.json
+target/
+*.wasm
+!circuits/withdraw_js/withdraw.wasm
+
+# ZK ceremony artifacts (large binary files — regenerate via scripts/setup-ceremony.sh)
+circuits/build/*.ptau
+circuits/build/*.zkey
+circuits/build/*.r1cs
+circuits/build/*.sym
+circuits/build/withdraw_js/
+
+# Soroban build
+contracts/*/target/
+*.d
+
+# Deployment runtime logs
+deploy/logs/
+
+# IDE
+.vscode/
+.idea/
+
+# Commitment store (populated at runtime)
+.commitments.json
+
+# OS
+.DS_Store
+Thumbs.db
