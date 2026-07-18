@@ -1,0 +1,15 @@
+{
+  "network": "testnet",
+  "rpcUrl": "https://soroban-testnet.stellar.org",
+  "horizonUrl": "https://horizon-testnet.stellar.org",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "deployerPublicKey": "GBJYIJAZCL2ZPEPJMXZS5CDRCPCR6TPMXN2C5VKRGLOJ3RZZ577WMJAM",
+  "relayerPublicKey": "GBJYIJAZCL2ZPEPJMXZS5CDRCPCR6TPMXN2C5VKRGLOJ3RZZ577WMJAM",
+  "tokenContractId": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+  "verifierContractId": "CCLF3HMQGNPC4DM7JQNGLSTBBSEYWJWM7SDCBXA65W5CUZ5BSIJLFNH4",
+  "swapRouterContractId": "CAVKAQI3XUTZ6NJ2KKII5IZUROINOIPC3RSP4KIW7Q4FSC3NOO6FBLM3",
+  "poolContractId": "CB4MIF2KM4QHGXI5TSOOMKIJT3DOLXNWDMWPWY66OSPTCY5YDIGNLQTG",
+  "denomination": "1000000000",
+  "frontendOrigin": "http://localhost:3000",
+  "relayerUrl": "http://localhost:3002"
+}
