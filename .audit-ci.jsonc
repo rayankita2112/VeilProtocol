@@ -1,0 +1,16 @@
+{
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  // Fail the Security workflow on high/critical advisories in production deps.
+  "high": true,
+  "skip-dev": true,
+  "allowlist": [
+    // High-severity Next.js 14.x advisories. The only upstream fix is a
+    // breaking major upgrade (next >= 15.5.16 / 16.x), tracked separately
+    // via dependabot. Remove once the app is migrated off Next 14.
+    "GHSA-h25m-26qc-wcjf",
+    "GHSA-q4gf-8mx6-v5v3",
+    "GHSA-8h8q-6873-q5fj",
+    "GHSA-c4j6-fc7j-m34r",
+    "GHSA-36qx-fr4f-26g5",
+  ],
+}

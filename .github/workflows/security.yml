@@ -55,7 +55,7 @@ jobs:
         run: npm ci --prefix circuits
 
       - name: Audit workspace dependencies
-        run: npm audit --omit=dev --audit-level=high
+        run: npx audit-ci --config .audit-ci.jsonc
 
       - name: Audit circuit dependencies
         run: npm audit --prefix circuits --audit-level=high
