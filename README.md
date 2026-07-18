@@ -240,6 +240,10 @@ Pool get_next_index: 1
 
 Deployment metadata is stored in [config/testnet-deployment.json](/Users/samya/Downloads/VIEL-PROTOCOL/config/testnet-deployment.json:1).
 
+## CI/CD Pipelines
+
+<img width="1456" height="791" alt="Screenshot 2026-07-19 at 3 20 28 AM" src="https://github.com/user-attachments/assets/dbf07c6f-0169-4c8f-bf78-92e84da0c66c" />
+
 ## Prerequisites
 
 - Node.js 18 or newer
@@ -305,8 +309,6 @@ Templates are available in:
 - `.env.example`
 - `app/.env.example`
 - `config/testnet-deployment.example.json`
-
-Do not commit secret keys.
 
 ## Running Locally
 
@@ -488,13 +490,6 @@ docs/screenshots/ci-passing.png
 - The verifier contract is separated from the pool contract to keep proof verification isolated.
 - Persistent storage entries and instance storage use TTL extension.
 - Secret keys must be provided through local environment files or deployment secrets, not source control.
-
-## Known Limitations
-
-- The swap router uses simple admin-configured fixed rates. A production market would need stronger pricing, reserve, and oracle controls.
-- Browser proof dependencies can produce a non-fatal Next.js build warning through dynamic `web-worker` imports.
-- Numeric coverage reporting is not configured yet, although functional tests are present.
-- Hosted CI results must be generated from the remote GitHub repository.
 
 ## Troubleshooting
 
