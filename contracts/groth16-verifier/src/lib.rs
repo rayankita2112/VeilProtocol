@@ -62,7 +62,9 @@ impl Groth16Verifier {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Vk, &vk);
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
     }
 
     /// Verify a Groth16 proof against public inputs.
@@ -72,7 +74,9 @@ impl Groth16Verifier {
     ///
     /// Where vk_x = IC[0] + sum(public_input[i] * IC[i+1])
     pub fn verify(env: Env, proof: Groth16Proof, public_inputs: Vec<BytesN<32>>) -> bool {
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         let vk: VerificationKey = env.storage().instance().get(&DataKey::Vk).unwrap();
         let bn254 = env.crypto().bn254();
 
@@ -107,17 +111,17 @@ impl Groth16Verifier {
         let mut g1_points = Vec::new(&env);
         let mut g2_points = Vec::new(&env);
 
-        g1_points.push_back(neg_a);     // -pi_A
-        g2_points.push_back(pi_b);      // pi_B
+        g1_points.push_back(neg_a); // -pi_A
+        g2_points.push_back(pi_b); // pi_B
 
-        g1_points.push_back(alpha);     // alpha
-        g2_points.push_back(beta);      // beta
+        g1_points.push_back(alpha); // alpha
+        g2_points.push_back(beta); // beta
 
-        g1_points.push_back(vk_x);     // vk_x
-        g2_points.push_back(gamma);     // gamma
+        g1_points.push_back(vk_x); // vk_x
+        g2_points.push_back(gamma); // gamma
 
-        g1_points.push_back(pi_c);     // pi_C
-        g2_points.push_back(delta);     // delta
+        g1_points.push_back(pi_c); // pi_C
+        g2_points.push_back(delta); // delta
 
         bn254.pairing_check(g1_points, g2_points)
     }
@@ -135,10 +139,9 @@ fn negate_g1(env: &Env, point: &G1Affine) -> G1Affine {
     // Use scalar multiplication by -1 (r-1 in Fr)
     // Fr order: 0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001
     let neg_one_bytes: [u8; 32] = [
-        0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29,
-        0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81, 0x58, 0x5d,
-        0x28, 0x33, 0xe8, 0x48, 0x79, 0xb9, 0x70, 0x91,
-        0x43, 0xe1, 0xf5, 0x93, 0xf0, 0x00, 0x00, 0x00,
+        0x30, 0x64, 0x4e, 0x72, 0xe1, 0x31, 0xa0, 0x29, 0xb8, 0x50, 0x45, 0xb6, 0x81, 0x81, 0x58,
+        0x5d, 0x28, 0x33, 0xe8, 0x48, 0x79, 0xb9, 0x70, 0x91, 0x43, 0xe1, 0xf5, 0x93, 0xf0, 0x00,
+        0x00, 0x00,
     ];
     let neg_one = Bn254Fr::from_bytes(BytesN::from_array(env, &neg_one_bytes));
     env.crypto().bn254().g1_mul(point, &neg_one)

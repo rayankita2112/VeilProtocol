@@ -7,16 +7,20 @@ on:
       - main
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  CIRCOM_VERSION: v2.2.3
+
 jobs:
   quality:
     name: Quality Gates
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +49,7 @@ jobs:
       - name: Validate env templates
         run: npm run validate:env
 
-      - name: Secret scan
+      - name: Secret scan (repo scanner)
         run: npm run validate:secrets
 
       - name: Lint
@@ -57,58 +61,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Frontend and integration tests
-        run: npm run test:integration
-
-  contracts:
-    name: Soroban Contracts
+  tests:
+    name: Unit & Integration Tests
     runs-on: ubuntu-latest
-    needs:
-      - quality
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: circuits/package-lock.json
-
-      - name: Install circuit dependencies
-        run: npm ci --prefix circuits
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32v1-none
-
-      - name: Cache Rust artifacts
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: contracts
-
-      - name: Build circuits
-        run: npm run validate:circuits
-
-      - name: Build and test contracts
-        run: npm run validate:contracts
-
-      - name: Upload contract artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: soroban-contract-artifacts
-          path: |
-            contracts/target/wasm32v1-none/release/*.wasm
-            circuits/build/**
-          if-no-files-found: error
-
-  frontend:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    needs:
-      - contracts
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -125,17 +81,121 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Install circuit dependencies
-        run: npm ci --prefix circuits
-
       - name: Generate CI env files
         run: npm run setup:testnet
 
-      - name: Build circuit assets
+      - name: Frontend unit tests
+        run: npm run test:frontend
+
+      - name: Integration tests
+        run: npm run test:integration
+
+  circuits:
+    name: ZK Circuits
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: circuits/package-lock.json
+
+      - name: Install circom
+        run: |
+          curl -fsSL "https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64" -o circom
+          chmod +x circom
+          sudo mv circom /usr/local/bin/circom
+          circom --version
+
+      - name: Install circuit dependencies
+        run: npm ci --prefix circuits
+
+      - name: Build and validate circuits
         run: npm run validate:circuits
 
-      - name: Frontend tests
-        run: npm run test:frontend
+      - name: Upload circuit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: circuit-artifacts
+          path: |
+            circuits/build/**
+            app/public/circuits/**
+          if-no-files-found: error
+
+  contracts:
+    name: Soroban Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - circuits
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download circuit artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: circuit-artifacts
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+          components: rustfmt, clippy
+
+      - name: Cache Rust artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path contracts/Cargo.toml --all --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path contracts/Cargo.toml --workspace --all-targets --features testutils --locked
+
+      - name: Build and test contracts
+        run: npm run validate:contracts
+
+      - name: Upload contract artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: soroban-contract-artifacts
+          path: contracts/target/wasm32v1-none/release/*.wasm
+          if-no-files-found: error
+
+  frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - circuits
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download circuit artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: circuit-artifacts
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate CI env files
+        run: npm run setup:testnet
 
       - name: Validate frontend build
         run: npm run validate:frontend
@@ -147,13 +207,16 @@ jobs:
           path: |
             app/.next
             app/public/circuits
+          include-hidden-files: true
           if-no-files-found: error
 
   e2e:
     name: End-to-End
     if: vars.CI_E2E_ENABLED == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs:
+      - contracts
       - frontend
     env:
       CI_E2E: "true"
@@ -189,3 +252,26 @@ jobs:
 
       - name: Run e2e flow
         run: npm run test:e2e
+
+  ci-success:
+    name: CI Success
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+      - tests
+      - circuits
+      - contracts
+      - frontend
+      - e2e
+    steps:
+      - name: Verify pipeline result
+        run: |
+          results='${{ toJSON(needs) }}'
+          echo "$results"
+          failed=$(echo "$results" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
+          if [ -n "$failed" ]; then
+            echo "Failed jobs: $failed"
+            exit 1
+          fi
+          echo "All required jobs succeeded."

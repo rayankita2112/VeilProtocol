@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contractevent, contractimpl, contracttype, token, Address, Bytes, BytesN, Env,
-    IntoVal, Symbol, U256, Val, Vec,
+    IntoVal, Symbol, Val, Vec, U256,
 };
 
 mod merkle;
@@ -62,7 +62,9 @@ impl VeilPool {
         merkle::init_tree(&env);
 
         // Extend TTLs so contract survives testnet archival
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         bump_tree_ttl(&env);
     }
 
@@ -83,7 +85,9 @@ impl VeilPool {
         let leaf_index = merkle::insert(&env, &commitment);
 
         // Extend TTLs
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         bump_tree_ttl(&env);
 
         env.events().publish_event(&DepositEvent {
@@ -136,10 +140,7 @@ impl VeilPool {
         assert!(fee <= denomination, "fee exceeds denomination");
         assert!(refund == 0, "refund not supported yet");
 
-        assert!(
-            merkle::is_known_root(&env, &root),
-            "unknown merkle root"
-        );
+        assert!(merkle::is_known_root(&env, &root), "unknown merkle root");
 
         assert!(
             !env.storage()
@@ -201,7 +202,9 @@ impl VeilPool {
         );
 
         // Extend instance + tree TTLs
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         bump_tree_ttl(&env);
 
         // Transfer tokens
@@ -258,10 +261,7 @@ impl VeilPool {
         assert!(fee <= denomination, "fee exceeds denomination");
         assert!(refund == 0, "refund not supported yet");
 
-        assert!(
-            merkle::is_known_root(&env, &root),
-            "unknown merkle root"
-        );
+        assert!(merkle::is_known_root(&env, &root), "unknown merkle root");
 
         assert!(
             !env.storage()
@@ -319,7 +319,9 @@ impl VeilPool {
         );
 
         // Extend instance + tree TTLs
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         bump_tree_ttl(&env);
 
         let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
@@ -350,8 +352,7 @@ impl VeilPool {
             recipient.clone().into_val(&env)
         ];
 
-        let _amount_out: i128 =
-            env.invoke_contract(&router, &Symbol::new(&env, "swap"), swap_args);
+        let _amount_out: i128 = env.invoke_contract(&router, &Symbol::new(&env, "swap"), swap_args);
 
         env.events().publish_event(&WithdrawalEvent {
             recipient,
@@ -453,21 +454,33 @@ fn bump_tree_ttl(env: &Env) {
     // NextIndex + CurrentRootIndex
     for key in [DataKey::NextIndex, DataKey::CurrentRootIndex] {
         if env.storage().persistent().has(&key) {
-            env.storage().persistent().extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_BUMP,
+            );
         }
     }
     // FilledSubtree entries
     for i in 0..TREE_DEPTH {
         let key = DataKey::FilledSubtree(i);
         if env.storage().persistent().has(&key) {
-            env.storage().persistent().extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_BUMP,
+            );
         }
     }
     // Root history ring buffer
     for i in 0..ROOT_HISTORY_SIZE {
         let key = DataKey::Root(i);
         if env.storage().persistent().has(&key) {
-            env.storage().persistent().extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
+            env.storage().persistent().extend_ttl(
+                &key,
+                PERSISTENT_TTL_THRESHOLD,
+                PERSISTENT_TTL_BUMP,
+            );
         }
     }
 }

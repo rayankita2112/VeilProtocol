@@ -46,7 +46,9 @@ impl SwapRouter {
         }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
     }
 
     /// Set the exchange rate for a token pair.
@@ -57,8 +59,12 @@ impl SwapRouter {
         assert!(rate_bps > 0, "rate must be positive");
         let key = DataKey::Rate(token_in.clone(), token_out.clone());
         env.storage().persistent().set(&key, &rate_bps);
-        env.storage().persistent().extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.events().publish_event(&RateUpdatedEvent {
             token_in,
             token_out,
@@ -67,15 +73,24 @@ impl SwapRouter {
     }
 
     /// Calculate the output amount for a given input.
-    pub fn get_amount_out(env: Env, token_in: Address, token_out: Address, amount_in: i128) -> i128 {
+    pub fn get_amount_out(
+        env: Env,
+        token_in: Address,
+        token_out: Address,
+        amount_in: i128,
+    ) -> i128 {
         let key = DataKey::Rate(token_in, token_out);
         let rate_bps: i128 = env
             .storage()
             .persistent()
             .get(&key)
             .expect("no rate set for this pair");
-        env.storage().persistent().extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         amount_in * rate_bps / 10000
     }
 
@@ -97,8 +112,14 @@ impl SwapRouter {
             .persistent()
             .get(&rate_key)
             .expect("no rate set for this pair");
-        env.storage().persistent().extend_ttl(&rate_key, PERSISTENT_TTL_THRESHOLD, PERSISTENT_TTL_BUMP);
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage().persistent().extend_ttl(
+            &rate_key,
+            PERSISTENT_TTL_THRESHOLD,
+            PERSISTENT_TTL_BUMP,
+        );
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
 
         let amount_out = amount_in * rate_bps / 10000;
         assert!(

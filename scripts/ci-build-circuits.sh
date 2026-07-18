@@ -33,3 +33,8 @@ circom "$ROOT_DIR/circuits/subset.circom" \
 
 cp "$BUILD_DIR/withdraw_js/withdraw.wasm" "$PUBLIC_DIR/withdraw.wasm"
 cp "$BUILD_DIR/subset_js/subset.wasm" "$PUBLIC_DIR/subset.wasm"
+
+# Verification keys come from the trusted-setup ceremony and are tracked in
+# git; stage them into the build dir for consumers that read from there.
+cp "$ROOT_DIR/circuits/verification_key.json" "$BUILD_DIR/verification_key.json"
+cp "$PUBLIC_DIR/subset_verification_key.json" "$BUILD_DIR/subset_verification_key.json"

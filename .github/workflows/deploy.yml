@@ -6,6 +6,8 @@ on:
       - CI
     types:
       - completed
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -17,18 +19,28 @@ on:
           - staging
           - production
 
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
+env:
+  CIRCOM_VERSION: v2.2.3
+
 jobs:
   deploy:
+    name: Deploy (${{ github.event.inputs.environment || 'staging' }})
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     environment: ${{ github.event.inputs.environment || 'staging' }}
     env:
       DEPLOY_ENVIRONMENT: ${{ github.event.inputs.environment || 'staging' }}
+      GITHUB_REF_NAME: main
       CONTRACT_DEPLOY_COMMAND: ${{ secrets.CONTRACT_DEPLOY_COMMAND }}
       RELAYER_DEPLOY_COMMAND: ${{ secrets.RELAYER_DEPLOY_COMMAND }}
       FRONTEND_DEPLOY_COMMAND: ${{ secrets.FRONTEND_DEPLOY_COMMAND }}
@@ -49,6 +61,13 @@ jobs:
             package-lock.json
             circuits/package-lock.json
 
+      - name: Install circom
+        run: |
+          curl -fsSL "https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64" -o circom
+          chmod +x circom
+          sudo mv circom /usr/local/bin/circom
+          circom --version
+
       - name: Install root dependencies
         run: npm ci
 
@@ -59,6 +78,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32v1-none
+
+      - name: Cache Rust artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
 
       - name: Generate env files
         run: npm run setup:testnet
@@ -74,14 +98,14 @@ jobs:
         run: bash deploy/deploy.sh "${DEPLOY_ENVIRONMENT}"
 
       - name: Roll back on failure
-        if: failure()
+        if: failure() && steps.deploy.outcome == 'failure'
         run: bash deploy/rollback.sh "${DEPLOY_ENVIRONMENT}"
 
       - name: Upload deployment logs and bundle
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deploy-${{ env.DEPLOY_ENVIRONMENT }}
+          name: deploy-${{ env.DEPLOY_ENVIRONMENT }}-${{ github.run_id }}
           path: |
             deploy/logs
             deploy/artifacts

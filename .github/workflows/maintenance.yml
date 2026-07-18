@@ -12,6 +12,7 @@ jobs:
   dependency-health:
     name: Dependency Health
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,14 +34,14 @@ jobs:
 
       - name: Report npm dependency drift
         run: |
-          npm outdated --workspaces > npm-outdated.txt || true
+          npm outdated --workspaces --include-workspace-root > npm-outdated.txt || true
           npm outdated --prefix circuits > circuits-outdated.txt || true
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       - name: Dry-run Cargo updates
-        run: cargo update --manifest-path contracts/Cargo.toml --dry-run > cargo-update.txt || true
+        run: cargo update --manifest-path contracts/Cargo.toml --dry-run --verbose 2> cargo-update.txt || true
 
       - name: Upload maintenance reports
         uses: actions/upload-artifact@v4
@@ -50,4 +51,4 @@ jobs:
             npm-outdated.txt
             circuits-outdated.txt
             cargo-update.txt
-          if-no-files-found: error
+          if-no-files-found: warn

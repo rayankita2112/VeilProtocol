@@ -1,0 +1,18 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public on-chain identifiers and generated artifacts"
+paths = [
+  # Deployment snapshots contain Stellar contract IDs (C...) and account
+  # addresses (G...), which are public on-chain identifiers, not secrets.
+  '''deploy/artifacts/.*''',
+  '''config/testnet-deployment(\.example)?\.json''',
+  '''package-lock\.json''',
+  '''circuits/package-lock\.json''',
+]
+regexes = [
+  # Stellar contract IDs and public keys are base32 and entropy-dense but public.
+  '''C[A-Z2-7]{55}''',
+  '''G[A-Z2-7]{55}''',
+]

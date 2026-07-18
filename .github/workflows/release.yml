@@ -10,16 +10,17 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  CIRCOM_VERSION: v2.2.3
+
 jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
-      major: ${{ steps.release.outputs.major }}
-      minor: ${{ steps.release.outputs.minor }}
-      patch: ${{ steps.release.outputs.patch }}
     steps:
       - name: Run release-please
         id: release
@@ -33,6 +34,9 @@ jobs:
     if: needs.release-please.outputs.release_created == 'true'
     needs: release-please
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,8 +50,12 @@ jobs:
             package-lock.json
             circuits/package-lock.json
 
-      - name: Install root dependencies
-        run: npm ci
+      - name: Install circom
+        run: |
+          curl -fsSL "https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64" -o circom
+          chmod +x circom
+          sudo mv circom /usr/local/bin/circom
+          circom --version
 
       - name: Install circuit dependencies
         run: npm ci --prefix circuits
@@ -57,21 +65,26 @@ jobs:
         with:
           targets: wasm32v1-none
 
-      - name: Generate env files
-        run: npm run setup:testnet
-
-      - name: Build release assets
-        run: |
-          npm run validate:circuits
-          npm run validate:contracts
-          npm run validate:frontend
-          RELEASE_VERSION=${{ needs.release-please.outputs.tag_name }} npm run prepare:deploy
-
-      - name: Archive release bundle
-        run: tar -czf release-bundle.tgz deploy/artifacts
-
-      - name: Upload GitHub release assets
-        uses: softprops/action-gh-release@v2
+      - name: Cache Rust artifacts
+        uses: swatinem/rust-cache@v2
         with:
-          tag_name: ${{ needs.release-please.outputs.tag_name }}
-          files: release-bundle.tgz
+          workspaces: contracts
+
+      - name: Build circuits
+        run: npm run validate:circuits
+
+      - name: Build contracts
+        run: npm run validate:contracts
+
+      - name: Package release artifacts
+        run: |
+          mkdir -p release-artifacts
+          cp contracts/target/wasm32v1-none/release/*.wasm release-artifacts/
+          tar -czf release-artifacts/circuit-artifacts.tar.gz -C circuits build
+          ls -la release-artifacts
+
+      - name: Attach artifacts to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" release-artifacts/* --clobber
