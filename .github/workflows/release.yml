@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      major: ${{ steps.release.outputs.major }}
+      minor: ${{ steps.release.outputs.minor }}
+      patch: ${{ steps.release.outputs.patch }}
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: .release-please-config.json
+          manifest-file: release-please-manifest.json
+
+  release-artifacts:
+    name: Publish Release Artifacts
+    if: needs.release-please.outputs.release_created == 'true'
+    needs: release-please
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            circuits/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install circuit dependencies
+        run: npm ci --prefix circuits
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Generate env files
+        run: npm run setup:testnet
+
+      - name: Build release assets
+        run: |
+          npm run validate:circuits
+          npm run validate:contracts
+          npm run validate:frontend
+          RELEASE_VERSION=${{ needs.release-please.outputs.tag_name }} npm run prepare:deploy
+
+      - name: Archive release bundle
+        run: tar -czf release-bundle.tgz deploy/artifacts
+
+      - name: Upload GitHub release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          files: release-bundle.tgz

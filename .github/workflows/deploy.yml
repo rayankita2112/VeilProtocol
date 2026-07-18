@@ -1,0 +1,88 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    env:
+      DEPLOY_ENVIRONMENT: ${{ github.event.inputs.environment || 'staging' }}
+      CONTRACT_DEPLOY_COMMAND: ${{ secrets.CONTRACT_DEPLOY_COMMAND }}
+      RELAYER_DEPLOY_COMMAND: ${{ secrets.RELAYER_DEPLOY_COMMAND }}
+      FRONTEND_DEPLOY_COMMAND: ${{ secrets.FRONTEND_DEPLOY_COMMAND }}
+      ROLLBACK_COMMAND: ${{ secrets.ROLLBACK_COMMAND }}
+      DEPLOYER_SECRET_KEY: ${{ secrets.DEPLOYER_SECRET_KEY }}
+      RELAYER_SECRET_KEY: ${{ secrets.RELAYER_SECRET_KEY }}
+      SUBMITTER_SECRET_KEY: ${{ secrets.SUBMITTER_SECRET_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            circuits/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install circuit dependencies
+        run: npm ci --prefix circuits
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Generate env files
+        run: npm run setup:testnet
+
+      - name: Build deployable assets
+        run: |
+          npm run validate:circuits
+          npm run validate:contracts
+          npm run validate:frontend
+
+      - name: Deploy
+        id: deploy
+        run: bash deploy/deploy.sh "${DEPLOY_ENVIRONMENT}"
+
+      - name: Roll back on failure
+        if: failure()
+        run: bash deploy/rollback.sh "${DEPLOY_ENVIRONMENT}"
+
+      - name: Upload deployment logs and bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-${{ env.DEPLOY_ENVIRONMENT }}
+          path: |
+            deploy/logs
+            deploy/artifacts
+          if-no-files-found: warn

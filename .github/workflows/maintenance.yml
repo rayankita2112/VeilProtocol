@@ -1,0 +1,53 @@
+name: Maintenance
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-health:
+    name: Dependency Health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            circuits/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install circuit dependencies
+        run: npm ci --prefix circuits
+
+      - name: Report npm dependency drift
+        run: |
+          npm outdated --workspaces > npm-outdated.txt || true
+          npm outdated --prefix circuits > circuits-outdated.txt || true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Dry-run Cargo updates
+        run: cargo update --manifest-path contracts/Cargo.toml --dry-run > cargo-update.txt || true
+
+      - name: Upload maintenance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-health-reports
+          path: |
+            npm-outdated.txt
+            circuits-outdated.txt
+            cargo-update.txt
+          if-no-files-found: error
