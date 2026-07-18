@@ -212,9 +212,9 @@ Frontend synchronization is implemented in [app/src/lib/event-stream.mjs](/Users
 - Node.js test runner
 - GitHub Actions
 
-## Verified Testnet Deployment
+## Updated Deployed Contract Addresses
 
-The project is configured for Stellar Testnet.
+The project is configured for Stellar Testnet. These are the active deployed addresses from the latest deployment snapshot, generated on `2026-07-17T20:35:19.066Z`.
 
 | Component           | Address                                                    |
 | ------------------- | ---------------------------------------------------------- |
