@@ -18,6 +18,7 @@ circuits/build/*.zkey
 circuits/build/*.r1cs
 circuits/build/*.sym
 circuits/build/withdraw_js/
+circuits/build/
 
 # Soroban build
 contracts/*/target/
